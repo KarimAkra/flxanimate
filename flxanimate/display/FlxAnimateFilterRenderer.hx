@@ -12,6 +12,7 @@ import lime.graphics.cairo.Cairo;
 import openfl.display.DisplayObjectRenderer;
 import openfl.filters.BlurFilter;
 import openfl.display.Graphics;
+import openfl.display.Shape;
 import flixel.FlxG;
 import openfl.display.OpenGLRenderer;
 import openfl.geom.Rectangle;
@@ -66,6 +67,7 @@ class FlxAnimateFilterRenderer
 
 	public function applyFilter(bmp:BitmapData, target:BitmapData, target1:BitmapData, target2:BitmapData, filters:Array<BitmapFilter>, ?rect:Rectangle = null, ?mask:BitmapData, ?maskPos:FlxPoint)
 	{
+		var shape = new Shape();
 		if (mask != null)
 		{
 			maskShader.relativePos.value[0] = 0;
@@ -83,64 +85,66 @@ class FlxAnimateFilterRenderer
 		renderer.__worldTransform.identity();
 		renderer.__worldColorTransform.__identity();
 
-		var bitmap:BitmapData = target;
-		var bitmap2 = target1;
+    var bitmap:BitmapData = target;
+    var bitmap2 = target1;
+    var bitmap3 = target2;
+    if (rect != null)
+      bmp.__renderTransform.translate(Math.abs(rect.x), Math.abs(rect.y));
 
-		var bitmap3 = target2;
+	    shape.graphics.beginBitmapFill(bmp);
 
+    if (bmp != bitmap)
+      shape.graphics.beginShaderFill(renderer.__defaultDisplayShader, bmp.__renderTransform);
 
-		if (rect != null && filters != null && filters.length > 0)
-			bmp.__renderTransform.translate(Math.abs(rect.x), Math.abs(rect.y));
-		renderer.__setRenderTarget(bitmap);
-		if (bmp != bitmap)
-			renderer.__renderFilterPass(bmp, renderer.__defaultDisplayShader, true);
-		bmp.__renderTransform.identity();
+    bmp.__renderTransform.identity();
+    if (filters != null)
+    {
+      for (filter in filters)
+      {
+        if (filter.__preserveObject)
+        {
+          shape.graphics.beginBitmapFill(bitmap, true, filter.__smooth);
+          shape.graphics.beginShaderFill(renderer.__defaultDisplayShader);
+        }
 
-		if (filters != null)
-		{
-			for (filter in filters)
-			{
-				if (filter.__preserveObject)
-				{
-					renderer.__setRenderTarget(bitmap3);
-					renderer.__renderFilterPass(bitmap, renderer.__defaultDisplayShader, filter.__smooth);
-				}
+        for (i in 0...filter.__numShaderPasses)
+        {
+          shape.graphics.overrideBlendMode(filter.__shaderBlendMode);
 
-				for (i in 0...filter.__numShaderPasses)
-				{
-					renderer.__setBlendMode(filter.__shaderBlendMode);
-					renderer.__setRenderTarget(bitmap2);
-					renderer.__renderFilterPass(bitmap, filter.__initShader(renderer, i, (filter.__preserveObject) ? bitmap3 : null), filter.__smooth);
+          shape.graphics.beginBitmapFill(bitmap, true, filter.__smooth);
+          shape.graphics.beginShaderFill(filter.__initShader(renderer, i, (filter.__preserveObject) ? bitmap3 : null));
 
-					renderer.__setRenderTarget(bitmap);
-					renderer.__renderFilterPass(bitmap2, renderer.__defaultDisplayShader, filter.__smooth);
-				}
+          shape.graphics.beginBitmapFill(bitmap2, true, filter.__smooth);
+          shape.graphics.beginShaderFill(renderer.__defaultDisplayShader);
+        }
 
-				filter.__renderDirty = false;
-			}
+        filter.__renderDirty = false;
+      }
 
-			if (mask != null)
-				filters.pop();
+      if (mask != null)
+          filters.pop();
+
+			shape.graphics.endFill();
+			Context3DGraphics.render(shape.graphics, renderer);
 
 			var gl = renderer.__gl;
-
 			var renderBuffer = bitmap.getTexture(renderer.__context3D);
 			@:privateAccess
 			gl.readPixels(0, 0, bitmap.width, bitmap.height, renderBuffer.__format, gl.UNSIGNED_BYTE, bitmap.image.data);
 			bitmap.image.version = 0;
 			@:privateAccess
 			bitmap.__textureVersion = -1;
-		}
+    }
 	}
 
 	public function graphicstoBitmapData(gfx:Graphics, ?target:BitmapData = null, ?point:FlxPoint = null) // TODO!: Support for CPU based games (Cairo/Canvas only renderers)
 	{
 		if (gfx.__bounds == null) return null;
 
-		var cacheRTT = renderer.__context3D.__state.renderToTexture;
-		var cacheRTTDepthStencil = renderer.__context3D.__state.renderToTextureDepthStencil;
-		var cacheRTTAntiAlias = renderer.__context3D.__state.renderToTextureAntiAlias;
-		var cacheRTTSurfaceSelector = renderer.__context3D.__state.renderToTextureSurfaceSelector;
+		// var cacheRTT = renderer.__context3D.__state.renderToTexture;
+		// var cacheRTTDepthStencil = renderer.__context3D.__state.renderToTextureDepthStencil;
+		// var cacheRTTAntiAlias = renderer.__context3D.__state.renderToTextureAntiAlias;
+		// var cacheRTTSurfaceSelector = renderer.__context3D.__state.renderToTextureSurfaceSelector;
 
 		var bounds = gfx.__owner.getBounds(null);
 
@@ -159,29 +163,38 @@ class FlxAnimateFilterRenderer
 
 		var context = renderer.__context3D;
 
-		renderer.__setRenderTarget(bmp);
-		context.setRenderToTexture(bmp.getTexture(context));
+		// renderer.__setRenderTarget(bmp);
+		// context.setRenderToTexture(bmp.getTexture(context));
 
-		Context3DGraphics.render(gfx, renderer);
+		// Context3DGraphics.render(gfx, renderer);
 
 		renderer.__worldTransform.identity();
 
-
-		var gl = renderer.__gl;
-		var renderBuffer = bmp.getTexture(context);
-
+		var shape = new Shape();
 		@:privateAccess
-		gl.readPixels(0, 0, Math.round(bmp.width), Math.round(bmp.height), renderBuffer.__format, gl.UNSIGNED_BYTE, bmp.image.data);
+		shape.__graphics = gfx;
+		var matrix = new Matrix();
+		matrix.translate(-bounds.x, -bounds.y);
+		if (point != null)
+			matrix.translate(point.x, point.y);
+		bmp.draw(shape, matrix);
 
 
-		if (cacheRTT != null)
-		{
-			renderer.__context3D.setRenderToTexture(cacheRTT, cacheRTTDepthStencil, cacheRTTAntiAlias, cacheRTTSurfaceSelector);
-		}
-		else
-		{
-			renderer.__context3D.setRenderToBackBuffer();
-		}
+		// var gl = renderer.__gl;
+		// var renderBuffer = bmp.getTexture(context);
+
+		// @:privateAccess
+		// gl.readPixels(0, 0, Math.round(bmp.width), Math.round(bmp.height), renderBuffer.__format, gl.UNSIGNED_BYTE, bmp.image.data);
+
+
+		// if (cacheRTT != null)
+		// {
+		// 	renderer.__context3D.setRenderToTexture(cacheRTT, cacheRTTDepthStencil, cacheRTTAntiAlias, cacheRTTSurfaceSelector);
+		// }
+		// else
+		// {
+		// 	renderer.__context3D.setRenderToBackBuffer();
+		// }
 
 		return bmp;
 	}
