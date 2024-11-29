@@ -14,9 +14,11 @@ import openfl.filters.BlurFilter;
 import openfl.display.Graphics;
 import openfl.display.Shape;
 import flixel.FlxG;
+import flixel.graphics.tile.FlxGraphicsShader;
 import openfl.display.OpenGLRenderer;
 import openfl.geom.Rectangle;
 import openfl.display.BitmapData;
+import openfl.display.Shader;
 import openfl.filters.BitmapFilter;
 import openfl.geom.Matrix;
 import openfl.geom.ColorTransform;
@@ -65,9 +67,11 @@ class FlxAnimateFilterRenderer
 		maskFilter = new ShaderFilter(maskShader);
 	}
 
+
 	public function applyFilter(bmp:BitmapData, target:BitmapData, target1:BitmapData, target2:BitmapData, filters:Array<BitmapFilter>, ?rect:Rectangle = null, ?mask:BitmapData, ?maskPos:FlxPoint)
 	{
 		var shape = new Shape();
+
 		if (mask != null)
 		{
 			maskShader.relativePos.value[0] = 0;
@@ -79,44 +83,25 @@ class FlxAnimateFilterRenderer
 			else
 				filters.push(maskFilter);
 		}
-		renderer.__setBlendMode(NORMAL);
-		renderer.__worldAlpha = 1;
 
-		renderer.__worldTransform.identity();
-		renderer.__worldColorTransform.__identity();
-
-    var bitmap:BitmapData = target;
-    var bitmap2 = target1;
-    var bitmap3 = target2;
-    if (rect != null)
-      bmp.__renderTransform.translate(Math.abs(rect.x), Math.abs(rect.y));
-
-	    shape.graphics.beginBitmapFill(bmp);
-
-    if (bmp != bitmap)
-      shape.graphics.beginShaderFill(renderer.__defaultDisplayShader, bmp.__renderTransform);
-
-    bmp.__renderTransform.identity();
     if (filters != null)
-    {
+		{
       for (filter in filters)
       {
-        if (filter.__preserveObject)
-        {
-          shape.graphics.beginBitmapFill(bitmap, true, filter.__smooth);
-          shape.graphics.beginShaderFill(renderer.__defaultDisplayShader);
-        }
-
         for (i in 0...filter.__numShaderPasses)
         {
-          shape.graphics.overrideBlendMode(filter.__shaderBlendMode);
-
-          shape.graphics.beginBitmapFill(bitmap, true, filter.__smooth);
-          shape.graphics.beginShaderFill(filter.__initShader(renderer, i, (filter.__preserveObject) ? bitmap3 : null));
-
-          shape.graphics.beginBitmapFill(bitmap2, true, filter.__smooth);
-          shape.graphics.beginShaderFill(renderer.__defaultDisplayShader);
+					var shader:Shader = filter.__initShader(new OpenGLRenderer(FlxG.game.stage.context3D, bmp), i, bmp);
+					bmp.applyFilter(null, bmp.rect, new openfl.geom.Point(0,0), new ShaderFilter(shader));
         }
+
+				if (rect != null)
+					bmp.__renderTransform.translate(Math.abs(rect.x), Math.abs(rect.y));
+
+        shape.graphics.beginShaderFill(bitmapShaderGraphic(bmp, filter.__smooth), bmp.__renderTransform);
+				shape.graphics.drawQuads(getRectVector([bmp.rect.x, bmp.rect.y, bmp.rect.width, bmp.rect.height]), null, getMatrixVector(bmp.__renderTransform));
+				shape.graphics.overrideBlendMode(filter.__shaderBlendMode);
+
+				bmp.__renderTransform.identity();
 
         filter.__renderDirty = false;
       }
@@ -125,15 +110,8 @@ class FlxAnimateFilterRenderer
           filters.pop();
 
 			shape.graphics.endFill();
-			Context3DGraphics.render(shape.graphics, renderer);
 
-			var gl = renderer.__gl;
-			var renderBuffer = bitmap.getTexture(renderer.__context3D);
-			@:privateAccess
-			gl.readPixels(0, 0, bitmap.width, bitmap.height, renderBuffer.__format, gl.UNSIGNED_BYTE, bitmap.image.data);
-			bitmap.image.version = 0;
-			@:privateAccess
-			bitmap.__textureVersion = -1;
+			target.draw(shape);
     }
 	}
 
@@ -197,5 +175,41 @@ class FlxAnimateFilterRenderer
 		// }
 
 		return bmp;
+	}
+
+	function bitmapShaderGraphic(bitmap:BitmapData, smooth:Bool = true):FlxGraphicsShader
+	{
+		final shader = new FlxGraphicsShader();
+		shader.bitmap.input = bitmap;
+		shader.bitmap.filter = smooth ? LINEAR : NEAREST;
+		shader.alpha.value = [];
+		for (i in #if (openfl >= "8.5.0") 0...4 #else 0...6 #end)
+			shader.alpha.value.push(1.0);
+
+		return shader;
+	}
+
+	function getRectVector(array:Array<Float>):openfl.Vector<Float>
+	{
+		var vector = new openfl.Vector<Float>();
+
+		for (dimension in array)
+			vector.push(dimension);
+
+		return vector;
+	}
+
+	function getMatrixVector(matrix:Matrix)
+	{
+		var vector = new openfl.Vector<Float>();
+
+		vector.push(matrix.a);
+		vector.push(matrix.b);
+		vector.push(matrix.c);
+		vector.push(matrix.d);
+		vector.push(matrix.tx);
+		vector.push(matrix.ty);
+
+		return vector;
 	}
 }
