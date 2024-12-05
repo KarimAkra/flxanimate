@@ -16,7 +16,7 @@ import flxanimate.data.AnimationData;
 class FlxSymbol implements IFlxDestroyable
 {
 	@:allow(flxanimate.animate.FlxElement)
-	var filterPool:Map<Array<BitmapFilter>, BitmapData> = [];
+	var filterPool:Map<Array<flxanimate.filters.FlxAnimateFilter>, BitmapData> = [];
 
 	var _sprite:Sprite;
 	@:allow(flxanimate.FlxAnimate)
@@ -37,7 +37,7 @@ class FlxSymbol implements IFlxDestroyable
 	 * The name of the symbol.
 	 */
 	public var name(default, set):String;
-	
+
 	@:allow(flxanimate.animate.FlxSymbolDictionary)
 	public var location(default, null):String;
 	@:noCompletion
@@ -430,7 +430,7 @@ class FlxSymbol implements IFlxDestroyable
 
 			_parent.addSymbol(this);
 		}
-		
+
 		return name = value;
 	}
 }

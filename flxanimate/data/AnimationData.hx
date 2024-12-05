@@ -114,7 +114,7 @@ class AnimationData
 	{
 		if (filters == null) return null;
 
-		var bitmapFilter:Array<BitmapFilter> = [];
+		var bitmapFilter:Array<flxanimate.filters.FlxAnimateFilter> = [];
 
 		for (filter in Reflect.fields(filters))
 		{
@@ -127,7 +127,7 @@ class AnimationData
 	{
 		if (filters == null) return null;
 
-		var bitmapFilter:Array<BitmapFilter> = [];
+		var bitmapFilter:Array<flxanimate.filters.FlxAnimateFilter> = [];
 
 		for (filter in filters)
 		{
@@ -137,32 +137,41 @@ class AnimationData
 		return bitmapFilter;
 	}
 
-	static function filterFromString(field:String, value:Dynamic):BitmapFilter
+	static function filterFromString(field:String, value:Dynamic):flxanimate.filters.FlxAnimateFilter
 	{
 		switch (field)
 		{
 			case "DSF", "DropShadowFilter":
 			{
-				var drop:DropShadowFilter = value;
-				return new openfl.filters.DropShadowFilter(drop.DST, drop.AL, colorFromString(drop.C), drop.A, drop.BLX, drop.BLY, drop.STR, drop.Q, drop.IN, drop.KK);
+				trace('needs DropShadowFilter');
+				// var drop:DropShadowFilter = value;
+				// return new openfl.filters.DropShadowFilter(drop.DST, drop.AL, colorFromString(drop.C), drop.A, drop.BLX, drop.BLY, drop.STR, drop.Q, drop.IN, drop.KK);
 			}
 			case "GF", "GlowFilter":
 			{
-				var glow:GlowFilter = value;
-				return new openfl.filters.GlowFilter(colorFromString(glow.C), glow.A, glow.BLX, glow.BLY, glow.STR, glow.Q, glow.IN, glow.KK);
+				trace('needs GlowFilter');
+
+				// var glow:GlowFilter = value;
+				// return new openfl.filters.GlowFilter(colorFromString(glow.C), glow.A, glow.BLX, glow.BLY, glow.STR, glow.Q, glow.IN, glow.KK);
 			}
 			case "BF", "BevelFilter": // Friday Night Funkin reference ?!??!?!''1'!'?1'1''?1''
 			{
-				var bevel:BevelFilter = value;
-				return new flxanimate.filters.BevelFilter(bevel.DST, bevel.AL, colorFromString(bevel.HC), bevel.HA, colorFromString(bevel.SC), bevel.SA, bevel.BLX, bevel.BLY, bevel.STR, bevel.Q, bevel.TP, bevel.KK);
+				trace('needs BevelFilter');
+
+				// var bevel:BevelFilter = value;
+				// return new flxanimate.filters.BevelFilter(bevel.DST, bevel.AL, colorFromString(bevel.HC), bevel.HA, colorFromString(bevel.SC), bevel.SA, bevel.BLX, bevel.BLY, bevel.STR, bevel.Q, bevel.TP, bevel.KK);
 			}
 			case "BLF", "BlurFilter":
 			{
+				trace('needs BlurFilter');
+
 				var blur:BlurFilter = value;
-				return new openfl.filters.BlurFilter(blur.BLX, blur.BLY, blur.Q);
+				return new flxanimate.filters.BlurFilter(blur.BLX, blur.BLY, blur.Q);
 			}
 			case "ACF", "AdjustColorFilter":
 			{
+				trace('needs AdjustColorFilter');
+
 				var adjustColor:AdjustColorFilter = value;
 
 				var colorAdjust = new AdjustColor();
@@ -172,11 +181,13 @@ class AnimationData
 				colorAdjust.contrast = adjustColor.CT;
 				colorAdjust.saturation = adjustColor.SAT;
 
-				return new openfl.filters.ColorMatrixFilter(colorAdjust.calculateFinalFlatArray());
+				// return new openfl.filters.ColorMatrixFilter(colorAdjust.calculateFinalFlatArray());
 			}
 
 			case "GGF", "GradientGlowFilter":
 			{
+				trace('needs GradientGlowFilter');
+
 				var gradient:GradientFilter = value;
 				var colors:Array<Int> = [];
 				var alphas:Array<Float> = [];
@@ -190,10 +201,12 @@ class AnimationData
 				}
 
 
-				return new flxanimate.filters.GradientGlowFilter(gradient.DST, gradient.AL, colors, alphas, ratios, gradient.BLX, gradient.BLY, gradient.STR, gradient.Q, gradient.TP, gradient.KK);
+				// return new flxanimate.filters.GradientGlowFilter(gradient.DST, gradient.AL, colors, alphas, ratios, gradient.BLX, gradient.BLY, gradient.STR, gradient.Q, gradient.TP, gradient.KK);
 			}
 			case "GBF", "GradientBevelFilter":
 			{
+				trace('needs GradientBevelFilter');
+
 				var gradient:GradientFilter = value;
 				var colors:Array<Int> = [];
 				var alphas:Array<Float> = [];
@@ -207,7 +220,7 @@ class AnimationData
 				}
 
 
-				return new flxanimate.filters.GradientBevelFilter(gradient.DST, gradient.AL, colors, alphas, ratios, gradient.BLX, gradient.BLY, gradient.STR, gradient.Q, gradient.TP, gradient.KK);
+				// return new flxanimate.filters.GradientBevelFilter(gradient.DST, gradient.AL, colors, alphas, ratios, gradient.BLX, gradient.BLY, gradient.STR, gradient.Q, gradient.TP, gradient.KK);
 			}
 		}
 
@@ -455,7 +468,7 @@ abstract MetaData({}) from {}
 	 * The framerate.
 	 */
 	public var FRT(get, never):Float;
-	
+
 	/**
 	 * the current version of the exporter (Used in BetterTA)
 	 */
@@ -598,7 +611,7 @@ abstract SymbolInstance({}) from {}
 	 * a 2D version of the matrix. (used only in BetterTA)
 	 */
 	public var MX(get, never):Array<Float>;
-	
+
 	/**
 	 * The Color Effect of the symbol, it says color but it affects alpha too lol.
 	 */

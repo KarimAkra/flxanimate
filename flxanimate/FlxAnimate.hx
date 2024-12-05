@@ -60,7 +60,7 @@ class FlxAnimate extends FlxSprite
 
 	var _symbols:Array<FlxSymbol>;
 
-	public var filters:Array<BitmapFilter> = null;
+	public var filters:Array<flxanimate.filters.FlxAnimateFilter> = null;
 
 	public var showPivot(default, set):Bool;
 
@@ -120,7 +120,7 @@ class FlxAnimate extends FlxSprite
 
 			trace("ALAL");
 			loadSeparateAtlas(null, FlxAnimateFrames.fromTextureAtlas(Path));
-			
+
 			anim._loadExAtlas(Path);
 		}
 	}

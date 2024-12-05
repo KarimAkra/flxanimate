@@ -52,7 +52,7 @@ class FlxKeyFrame
 
 	var clTMat:FlxMatrix = new FlxMatrix();
 
-	public var filters(default, set):Array<BitmapFilter>;
+	public var filters(default, set):Array<flxanimate.filters.FlxAnimateFilter>;
 
 	var _curFrame:Int = 0;
 	public function new(index:Int, ?duration:Int = 1, ?elements:Array<FlxElement> = null, ?colorEffect:FlxColorEffect = null, ?name:String = null)
@@ -79,7 +79,7 @@ class FlxKeyFrame
 		}
 		return duration;
 	}
-	function set_filters(value:Array<BitmapFilter>)
+	function set_filters(value:Array<flxanimate.filters.FlxAnimateFilter>)
 	{
 		_renderDirty = true;
 		if (value != null && value.length > 0)

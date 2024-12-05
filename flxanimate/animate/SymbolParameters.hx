@@ -115,7 +115,7 @@ class SymbolParameters implements IFilterable
 
 	public var transformationPoint:FlxPoint;
 
-	public var filters(default, set):Array<BitmapFilter>;
+	public var filters(default, set):Array<flxanimate.filters.FlxAnimateFilter>;
 
 	public var cacheAsBitmapMatrix:FlxMatrix;
 
@@ -265,7 +265,7 @@ class SymbolParameters implements IFilterable
 		return colorEffect;
 	}
 
-	function set_filters(filters:Array<BitmapFilter>)
+	function set_filters(filters:Array<flxanimate.filters.FlxAnimateFilter>)
 	{
 		if (type == Graphic) return null;
 

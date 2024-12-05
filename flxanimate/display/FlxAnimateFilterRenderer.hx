@@ -68,50 +68,48 @@ class FlxAnimateFilterRenderer
 	}
 
 
-	public function applyFilter(bmp:BitmapData, target:BitmapData, target1:BitmapData, target2:BitmapData, filters:Array<BitmapFilter>, ?rect:Rectangle = null, ?mask:BitmapData, ?maskPos:FlxPoint)
+	public function applyFilter(bmp:BitmapData, target:BitmapData, target1:BitmapData, target2:BitmapData, filters:Array<flxanimate.filters.FlxAnimateFilter>, ?rect:Rectangle = null, ?mask:BitmapData, ?maskPos:FlxPoint)
 	{
 		var shape = new Shape();
 
-		if (mask != null)
-		{
-			maskShader.relativePos.value[0] = 0;
-			maskShader.relativePos.value[1] = 0;
-			maskShader.mainPalette.input = mask;
-			maskFilter.invalidate();
-			if (filters == null)
-				filters = [maskFilter];
-			else
-				filters.push(maskFilter);
-		}
+		// if (mask != null)
+		// {
+		// 	maskShader.relativePos.value[0] = 0;
+		// 	maskShader.relativePos.value[1] = 0;
+		// 	maskShader.mainPalette.input = mask;
+		// 	maskFilter.invalidate();
+		// 	if (filters == null)
+		// 		filters = [maskFilter];
+		// 	else
+		// 		filters.push(maskFilter);
+		// }
 
     if (filters != null)
 		{
       for (filter in filters)
       {
+				var shadersPasses:Array<openfl.display.GraphicsShader> = [];
         for (i in 0...filter.__numShaderPasses)
         {
-					var shader:Shader = filter.__initShader(new OpenGLRenderer(FlxG.game.stage.context3D, bmp), i, bmp);
-					bmp.applyFilter(null, bmp.rect, new openfl.geom.Point(0,0), new ShaderFilter(shader));
+					shadersPasses.push(filter.initShaderGraphic(i, bmp));
         }
 
-				if (rect != null)
-					bmp.__renderTransform.translate(Math.abs(rect.x), Math.abs(rect.y));
-
-        shape.graphics.beginShaderFill(bitmapShaderGraphic(bmp, filter.__smooth), bmp.__renderTransform);
-				shape.graphics.drawQuads(getRectVector([bmp.rect.x, bmp.rect.y, bmp.rect.width, bmp.rect.height]), null, getMatrixVector(bmp.__renderTransform));
+				shape.graphics.beginShaderFill(new Shader(shadersPasses));
+				shape.graphics.drawQuads(getRectVector(bmp.rect));
 				shape.graphics.overrideBlendMode(filter.__shaderBlendMode);
-
-				bmp.__renderTransform.identity();
 
         filter.__renderDirty = false;
       }
 
+			shape.graphics.endFill();
+
       if (mask != null)
           filters.pop();
 
-			shape.graphics.endFill();
-
-			target.draw(shape);
+			if (rect != null)
+				bmp.__renderTransform.translate(Math.abs(rect.x), Math.abs(rect.y));
+			target.draw(shape, bmp.__renderTransform);
+			bmp.__renderTransform.identity();
     }
 	}
 
@@ -189,12 +187,14 @@ class FlxAnimateFilterRenderer
 		return shader;
 	}
 
-	function getRectVector(array:Array<Float>):openfl.Vector<Float>
+	function getRectVector(rect:Rectangle):openfl.Vector<Float>
 	{
 		var vector = new openfl.Vector<Float>();
 
-		for (dimension in array)
-			vector.push(dimension);
+		vector.push(rect.x);
+		vector.push(rect.y);
+		vector.push(rect.width);
+		vector.push(rect.height);
 
 		return vector;
 	}
