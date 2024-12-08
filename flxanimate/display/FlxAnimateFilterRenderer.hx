@@ -25,6 +25,7 @@ import openfl.geom.ColorTransform;
 import openfl.geom.Point;
 
 import openfl.display._internal.Context3DGraphics;
+import openfl.display._internal.Context3DBitmap;
 #if (js && html5)
 import openfl.display.CanvasRenderer;
 import openfl.display._internal.CanvasGraphics as GfxRenderer;
@@ -61,6 +62,7 @@ class FlxAnimateFilterRenderer
 	{
 		// context = new openfl.display3D.Context3D(null);
 		renderer = new OpenGLRenderer(FlxG.game.stage.context3D);
+		trace(FlxG.stage.window.context.webgl.getParameter(FlxG.stage.window.context.webgl.RENDERER));
 		renderer.__worldTransform = new Matrix();
 		renderer.__worldColorTransform = new ColorTransform();
 		maskShader = new MaskShader();
@@ -70,8 +72,6 @@ class FlxAnimateFilterRenderer
 
 	public function applyFilter(bmp:BitmapData, target:BitmapData, target1:BitmapData, target2:BitmapData, filters:Array<BitmapFilter>, ?rect:Rectangle = null, ?mask:BitmapData, ?maskPos:FlxPoint)
 	{
-		var shape = new Shape();
-
 		if (mask != null)
 		{
 			maskShader.relativePos.value[0] = 0;
@@ -83,36 +83,62 @@ class FlxAnimateFilterRenderer
 			else
 				filters.push(maskFilter);
 		}
+		renderer.__setBlendMode(NORMAL);
+		renderer.__worldAlpha = 1;
 
-    if (filters != null)
+		renderer.__worldTransform.identity();
+		renderer.__worldColorTransform.__identity();
+
+		var bitmap:BitmapData = target;
+		var bitmap2 = target1;
+
+		var bitmap3 = target2;
+
+
+		if (rect != null)
+			bmp.__renderTransform.translate(Math.abs(rect.x), Math.abs(rect.y));
+
+
+		renderer.__setRenderTarget(bitmap);
+		if (bmp != bitmap)
+			renderer.__renderFilterPass(bmp, renderer.__defaultDisplayShader, true);
+		bmp.__renderTransform.identity();
+
+		if (filters != null)
 		{
-      for (filter in filters)
-      {
-        for (i in 0...filter.__numShaderPasses)
-        {
-					var shader:Shader = filter.__initShader(new OpenGLRenderer(FlxG.game.stage.context3D, bmp), i, bmp);
-					bmp.applyFilter(null, bmp.rect, new openfl.geom.Point(0,0), new ShaderFilter(shader));
-        }
+			for (filter in filters)
+			{
+				if (filter.__preserveObject)
+				{
+					renderer.__setRenderTarget(bitmap3);
+					renderer.__renderFilterPass(bitmap, renderer.__defaultDisplayShader, filter.__smooth);
+				}
 
-				if (rect != null)
-					bmp.__renderTransform.translate(Math.abs(rect.x), Math.abs(rect.y));
+				for (i in 0...filter.__numShaderPasses)
+				{
+					renderer.__setBlendMode(filter.__shaderBlendMode);
+					renderer.__setRenderTarget(bitmap2);
+					renderer.__renderFilterPass(bitmap, filter.__initShader(renderer, i, (filter.__preserveObject) ? bitmap3 : null), filter.__smooth);
 
-        shape.graphics.beginShaderFill(bitmapShaderGraphic(bmp, filter.__smooth), bmp.__renderTransform);
-				shape.graphics.drawQuads(getRectVector([bmp.rect.x, bmp.rect.y, bmp.rect.width, bmp.rect.height]), null, getMatrixVector(bmp.__renderTransform));
-				shape.graphics.overrideBlendMode(filter.__shaderBlendMode);
+					renderer.__setRenderTarget(bitmap);
+					renderer.__renderFilterPass(bitmap2, renderer.__defaultDisplayShader, filter.__smooth);
+				}
 
-				bmp.__renderTransform.identity();
+				filter.__renderDirty = false;
+			}
 
-        filter.__renderDirty = false;
-      }
+			if (mask != null)
+				filters.pop();
 
-      if (mask != null)
-          filters.pop();
+			var gl = renderer.__gl;
 
-			shape.graphics.endFill();
-
-			target.draw(shape);
-    }
+			var renderBuffer = bitmap.getTexture(renderer.__context3D);
+			@:privateAccess
+			gl.readPixels(0, 0, bitmap.width, bitmap.height, renderBuffer.__format, gl.UNSIGNED_BYTE, bitmap.image.data);
+			bitmap.image.version = 0;
+			@:privateAccess
+			bitmap.__textureVersion = -1;
+		}
 	}
 
 	public function graphicstoBitmapData(gfx:Graphics, ?target:BitmapData = null, ?point:FlxPoint = null) // TODO!: Support for CPU based games (Cairo/Canvas only renderers)
